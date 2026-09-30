@@ -38,6 +38,12 @@ OP Trade Cycling is deliberately conservative. A villager that is observed as tr
 
 Even with these checks, use backups when testing command-driven gameplay changes on important worlds.
 
+## Releases
+
+Releases are built automatically by GitHub Actions and published to both GitHub Releases and Modrinth.
+
+Modrinth: https://modrinth.com/mod/op-trade-cycling
+
 ## Building
 
 ```bash
