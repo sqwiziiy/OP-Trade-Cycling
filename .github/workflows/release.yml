@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: release-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   MINECRAFT_VERSION: '1.20.1'
