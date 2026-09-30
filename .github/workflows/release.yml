@@ -95,6 +95,7 @@ jobs:
           fi
 
           HTTP_CODE="$(curl -sS -o /tmp/project.json -w '%{http_code}' \
+            -H "Authorization: ${MODRINTH_TOKEN}" \
             "https://api.modrinth.com/v2/project/${MODRINTH_SLUG}")"
 
           if [ "$HTTP_CODE" != "200" ]; then
@@ -106,7 +107,9 @@ jobs:
           PROJECT_ID="$(jq -r '.id' /tmp/project.json)"
           VERSION="${{ steps.meta.outputs.version }}"
 
-          if curl -fsSL "https://api.modrinth.com/v2/project/${PROJECT_ID}/version?include_changelog=false" \
+          if curl -fsSL \
+            -H "Authorization: ${MODRINTH_TOKEN}" \
+            "https://api.modrinth.com/v2/project/${PROJECT_ID}/version?include_changelog=false" \
             | jq -e --arg version "$VERSION" '.[] | select(.version_number == $version)' >/dev/null; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "reason=Modrinth version ${VERSION} already exists" >> "$GITHUB_OUTPUT"
