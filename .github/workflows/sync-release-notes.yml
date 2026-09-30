@@ -1,0 +1,21 @@
+name: Sync 0.1.4 Release Notes
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Sync release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit 'v0.1.4+mc1.20.1' \
+            --title 'OP Trade Cycling 0.1.4 — Minecraft 1.20.1' \
+            --notes-file CHANGELOG.md
