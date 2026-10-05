@@ -137,7 +137,6 @@ jobs:
           changelog-file: CHANGELOG.md
           loaders: fabric
           game-versions: ${{ env.MINECRAFT_VERSION }}
-          environment: client
           dependencies: |
             fabric-api(required){modrinth:P7dR8mSH}
           java: 17
