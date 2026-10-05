@@ -12,8 +12,9 @@ A client-only Fabric mod for Minecraft **1.20.1** that lets players with permiss
 - Works in singleplayer with cheats and on servers where the player can use `/data` and `/execute` (normally permission level 2+).
 - Rerolls the exact villager currently being traded with.
 - Keeps the merchant screen visually open while offers are refreshed.
-- Refuses to reroll villagers that have already been traded with.
-- Uses multiple safety checks, including villager UUID tracking and a server-side `Xp:0` guard.
+- Refuses to reroll villagers that have already been traded with by default.
+- Optional dangerous bypass for intentionally resetting already-traded villagers.
+- Uses multiple safety checks, including villager UUID tracking and a server-side `Xp:0` guard in safe mode.
 - No nearest-villager fallback: if the exact target cannot be identified, the reroll is refused.
 
 ## Requirements
@@ -30,13 +31,39 @@ A client-only Fabric mod for Minecraft **1.20.1** that lets players with permiss
 3. Press the configured **Cycle villager trades (OP)** key. The default key is **C** and can be changed in Minecraft Controls.
 4. The offers are rerolled and the trading screen is reopened in place.
 
-The mod refuses to run when the player lacks the required commands, offers are not fully synced, the villager has already been traded with, or the exact villager cannot be identified.
+## Dangerous bypass
+
+On first launch the mod creates:
+
+`config/optradecycling.json`
+
+Default configuration:
+
+```json
+{
+  "dangerousBypassUsedTrades": false
+}
+```
+
+Safe mode is the default and blocks any villager that has already been traded with.
+
+Setting `dangerousBypassUsedTrades` to `true` deliberately disables the used-trade protection. A reroll can then fully reset an already-traded villager:
+
+- existing offers are discarded;
+- trade XP is reset to `0`;
+- villager trading level is reset to novice (level 1);
+- new offers are generated for the same profession;
+- gossip/reputation is preserved.
+
+The config is re-read every time the reroll key is pressed, so this option can be toggled without restarting Minecraft.
+
+**Warning:** this mode can permanently erase valuable trades and villager trading progress. Use it only when that is explicitly what you want.
 
 ## Safety
 
-OP Trade Cycling is deliberately conservative. A villager that is observed as traded is locked for the rest of the connection, and the destructive server commands additionally target the exact villager UUID with `Xp:0`.
+With the bypass disabled, OP Trade Cycling is deliberately conservative. A villager that is observed as traded is locked for the rest of the connection, and the destructive server commands additionally target the exact villager UUID with `Xp:0`.
 
-Even with these checks, use backups when testing command-driven gameplay changes on important worlds.
+The exact UUID requirement remains active even in bypass mode.
 
 ## Releases
 
