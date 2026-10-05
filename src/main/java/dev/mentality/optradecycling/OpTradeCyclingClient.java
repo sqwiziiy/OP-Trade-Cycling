@@ -13,9 +13,9 @@ import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.passive.VillagerEntity;
-import net.minecraft.registry.Registries;
 import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
+import net.minecraft.registry.Registries;
 import net.minecraft.screen.MerchantScreenHandler;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
@@ -36,6 +36,9 @@ public final class OpTradeCyclingClient implements ClientModInitializer {
      * Once a villager is observed as traded, keep it locked for the rest of this
      * connection. This prevents a later transient/empty MerchantScreenHandler from
      * accidentally making the same villager look untraded.
+     *
+     * The lock is ignored only when the user explicitly enables the dangerous
+     * bypass in config.
      */
     private static final Set<UUID> lockedVillagers = new HashSet<>();
 
@@ -44,6 +47,9 @@ public final class OpTradeCyclingClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        // Creates config/optradecycling.json on first launch.
+        OpTradeCyclingConfig.load();
+
         cycleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.optradecycling.cycle",
                 InputUtil.Type.KEYSYM,
@@ -72,7 +78,6 @@ public final class OpTradeCyclingClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(OpTradeCyclingClient::tickPendingReopen);
 
-        // UUID safety locks are only meaningful for the current connection/world.
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> resetSessionState());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> resetSessionState());
     }
@@ -100,8 +105,6 @@ public final class OpTradeCyclingClient implements ClientModInitializer {
             return;
         }
 
-        // Safety first: never guess which villager belongs to the open merchant GUI.
-        // If the normal right-click callback did not give us an exact UUID, do nothing.
         VillagerEntity villager = findTargetVillager(client);
         if (villager == null) {
             message(client, "§cНе удалось точно определить жителя. Закрой торговлю и открой её снова.");
@@ -110,27 +113,28 @@ public final class OpTradeCyclingClient implements ClientModInitializer {
 
         UUID uuid = villager.getUuid();
 
-        // Permanent lock for this connection once the villager was ever observed as traded.
-        if (lockedVillagers.contains(uuid)) {
+        // Config is intentionally re-read on every key press so the bypass can be
+        // toggled without restarting Minecraft.
+        OpTradeCyclingConfig config = OpTradeCyclingConfig.load();
+        boolean bypassUsedTradeProtection = config.dangerousBypassUsedTrades;
+
+        if (!bypassUsedTradeProtection && lockedVillagers.contains(uuid)) {
             message(client, "§cУ этого жителя уже использовали сделки.");
             return;
         }
 
-        // An empty list can be a transient client sync state. Treat UNKNOWN as unsafe,
-        // never as an untraded villager.
+        // Even bypass mode must know the currently displayed offers before touching
+        // the entity. An empty list can be a transient sync state.
         if (handler.getRecipes().isEmpty()) {
             message(client, "§eСделки ещё не загрузились. Попробуй ещё раз через секунду.");
             return;
         }
 
-        // Two independent client-side indicators:
-        // 1) exact per-offer use count;
-        // 2) villager trade XP sent by the server with the merchant screen.
-        // For vanilla villagers, any completed trade gives the villager trade XP.
         boolean hasUsedOffer = handler.getRecipes().stream().anyMatch(offer -> offer.getUses() > 0);
         boolean hasTradeExperience = handler.getExperience() > 0;
+        boolean knownAsTraded = lockedVillagers.contains(uuid) || hasUsedOffer || hasTradeExperience;
 
-        if (hasUsedOffer || hasTradeExperience) {
+        if (!bypassUsedTradeProtection && knownAsTraded) {
             lockedVillagers.add(uuid);
             message(client, "§cУ этого жителя уже использовали сделки.");
             return;
@@ -148,29 +152,58 @@ public final class OpTradeCyclingClient implements ClientModInitializer {
             return;
         }
 
-        // Server-side final safety net.
-        // We target the exact UUID through its NBT and additionally require Xp:0.
-        // If this villager has ever been traded with in normal vanilla gameplay,
-        // the selector matches nothing and BOTH destructive /data commands are skipped.
-        String safeSelector = "@e[type=minecraft:villager,limit=1,nbt={UUID:"
-                + uuidAsNbtIntArray(uuid)
-                + ",Xp:0}]";
+        String exactUuidNbt = "UUID:" + uuidAsNbtIntArray(uuid);
+        String selector;
 
-        // Close only the SERVER handler. The visible client MerchantScreen stays open.
+        if (bypassUsedTradeProtection) {
+            // DANGEROUS MODE: exact UUID remains mandatory, but Xp:0 is deliberately
+            // removed so a traded villager can be reset.
+            selector = "@e[type=minecraft:villager,limit=1,nbt={" + exactUuidNbt + "}]";
+        } else {
+            // Safe mode: final server-side guard refuses any villager with trade XP.
+            selector = "@e[type=minecraft:villager,limit=1,nbt={"
+                    + exactUuidNbt
+                    + ",Xp:0}]";
+        }
+
         network.sendPacket(new CloseHandledScreenC2SPacket(handler.syncId));
 
-        network.sendChatCommand(
-                "execute as " + safeSelector
-                        + " run data merge entity @s {VillagerData:{profession:\"minecraft:none\"},Offers:0b}"
-        );
-        network.sendChatCommand(
-                "execute as " + safeSelector
-                        + " run data merge entity @s {VillagerData:{profession:\"" + professionId + "\"}}"
-        );
+        if (bypassUsedTradeProtection) {
+            // Full trade reset: clear offers and return the villager's trading
+            // progression to novice. Gossip/reputation is intentionally preserved.
+            network.sendChatCommand(
+                    "execute as " + selector
+                            + " run data merge entity @s {VillagerData:{profession:\"minecraft:none\",level:1},Xp:0,Offers:0b}"
+            );
+            network.sendChatCommand(
+                    "execute as " + selector
+                            + " run data merge entity @s {VillagerData:{profession:\"" + professionId + "\",level:1},Xp:0}"
+            );
+
+            // The villager is now deliberately reset, so an old session lock should
+            // not keep blocking it if the bypass is disabled again afterwards.
+            lockedVillagers.remove(uuid);
+        } else {
+            network.sendChatCommand(
+                    "execute as " + selector
+                            + " run data merge entity @s {VillagerData:{profession:\"minecraft:none\"},Offers:0b}"
+            );
+            network.sendChatCommand(
+                    "execute as " + selector
+                            + " run data merge entity @s {VillagerData:{profession:\"" + professionId + "\"}}"
+            );
+        }
 
         pendingVillagerUuid = uuid;
         reopenTicks = 3;
-        message(client, "§aОбновляю сделки…");
+
+        if (bypassUsedTradeProtection && knownAsTraded) {
+            message(client, "§6BYPASS: полностью сбрасываю торговый прогресс жителя…");
+        } else if (bypassUsedTradeProtection) {
+            message(client, "§eBYPASS включён. Обновляю сделки…");
+        } else {
+            message(client, "§aОбновляю сделки…");
+        }
     }
 
     private static void tickPendingReopen(MinecraftClient client) {
