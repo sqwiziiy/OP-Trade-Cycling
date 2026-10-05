@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 — Traded villager bypass
+
+- Add an opt-in `dangerousBypassUsedTrades` config option.
+- Allow intentionally rerolling villagers that have already been traded with.
+- In bypass mode, fully reset trade XP and villager trade level back to novice before generating new offers.
+- Preserve exact UUID targeting even in bypass mode.
+- Reload the config on every reroll key press, so bypass can be toggled without restarting the game.
+- Keep safe mode as the default configuration.
+
 ## 0.1.4 — Initial public release
 
 - Client-only villager trade cycling for Fabric 1.20.1 using vanilla operator commands.
