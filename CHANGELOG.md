@@ -7,6 +7,7 @@
 - In bypass mode, fully reset trade XP and villager trade level back to novice before generating new offers.
 - Preserve exact UUID targeting even in bypass mode.
 - Reload the config on every reroll key press, so bypass can be toggled without restarting the game.
+- Keep safe mode as the default configuration.
 
 ## 0.1.4 — Initial public release
 
