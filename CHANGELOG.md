@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — Traded villager bypass
 
 - Add an opt-in `dangerousBypassUsedTrades` config option.
 - Allow intentionally rerolling villagers that have already been traded with.
