@@ -2,6 +2,12 @@
 
 [English](README.md)
 
+[![Build](https://github.com/sqwiziiy/OP-Trade-Cycling/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sqwiziiy/OP-Trade-Cycling/actions/workflows/ci.yml)
+![Minecraft 1.20.1](https://img.shields.io/badge/Minecraft-1.20.1-3C8527)
+![Fabric](https://img.shields.io/badge/Loader-Fabric-DBD0B4)
+![Java 17](https://img.shields.io/badge/Java-17-E76F00)
+![GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-3B57A6)
+
 Клиентский Fabric-мод для Minecraft **1.20.1**, который позволяет игроку с правом использовать ванильные команды `/data` обновлять сделки жителя без установки мода на сервер.
 
 > Мод предназначен для серверов/миров, где тебе разрешены операторские команды. Он не обходит серверные права.
@@ -77,4 +83,4 @@ JAVA_HOME=/usr/lib/jvm/java-17-openjdk ./gradlew build
 
 ## Лицензия
 
-All Rights Reserved. Подробности в [LICENSE](LICENSE).
+Актуальный исходный код: [GNU GPL-3.0-only](LICENSE). Для ранее опубликованных релизов сохраняются условия, действовавшие при их публикации.

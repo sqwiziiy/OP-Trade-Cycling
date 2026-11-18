@@ -2,6 +2,12 @@
 
 [Русский](README_RU.md)
 
+[![Build](https://github.com/sqwiziiy/OP-Trade-Cycling/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sqwiziiy/OP-Trade-Cycling/actions/workflows/ci.yml)
+![Minecraft 1.20.1](https://img.shields.io/badge/Minecraft-1.20.1-3C8527)
+![Fabric](https://img.shields.io/badge/Loader-Fabric-DBD0B4)
+![Java 17](https://img.shields.io/badge/Java-17-E76F00)
+![GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-3B57A6)
+
 A client-only Fabric mod for Minecraft **1.20.1** that lets players with permission to use vanilla `/data` commands reroll an **untraded** villager's offers without installing anything on the server.
 
 > This mod is intended for servers/worlds where you are allowed to use operator commands. It does not bypass server permissions.
@@ -81,4 +87,4 @@ The release JAR is written to `build/libs/`.
 
 ## License
 
-All rights reserved. See [LICENSE](LICENSE).
+Current source: [GNU GPL-3.0-only](LICENSE). Earlier tagged releases retain the terms under which they were originally published.
